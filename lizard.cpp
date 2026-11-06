@@ -26,6 +26,8 @@
 #include <mutex>
 #include <vector>
 
+#include <semaphore.h>  //ST DO
+
 
 using namespace std;
 
@@ -95,6 +97,8 @@ using namespace std;
  * Declare global variables here
  */
 
+sem_t driveway_sem; //ST DO Controls the total cap of lizards (max 4)
+mutex counter_mutex; //ST DO Protects shared counter updates
 
 /**************************************************/
 /* Please leave these variables alone.  They are  */
@@ -160,6 +164,7 @@ int Cat::getId()
  void Cat::run() 
  {
 	 // launch the thread to simulate the cat's behavior	 
+   _catThread = new thread(catThread, this); //ST DO
 	 
  }
  
@@ -171,6 +176,9 @@ int Cat::getId()
  void Cat::wait()
  {
 	 // wait for the thread to terminate
+   if (_catThread != NULL) {  //ST DO
+      _catThread->join();     //ST DO
+   }                          //ST DO
  }
  
  
@@ -190,16 +198,20 @@ void Cat::sleepNow()
 
 	if (debug)
     {
+    counter_mutex.lock();   //ST DO
 		cout << "[" << _id << "] cat sleeping for " << sleepSeconds << " seconds" << endl;
 		cout << flush;
+    counter_mutex.unlock(); //ST DO
     }
 
 	sleep( sleepSeconds );
 
 	if (debug)
     {
+    counter_mutex.lock();   //ST DO
 		cout << "[" << _id << "] cat awake" << endl;
 		cout << flush;
+    counter_mutex.unlock(); //ST DO
     }
 }
 
@@ -219,8 +231,10 @@ void Cat::catThread (Cat *aCat)
 	
 	if (debug)
     {
+    counter_mutex.lock();   //ST DO
 		cout << "[" << aCat->getId() << "] cat is alive\n";
 		cout << flush;
+    counter_mutex.unlock(); //ST DO
     }
 
 	while(running)
@@ -232,12 +246,15 @@ void Cat::catThread (Cat *aCat)
 		/*
 	     * Check for too many lizards crossing
 	     */
+    counter_mutex.lock();   //ST DO
 		if (numCrossingSago2MonkeyGrass + numCrossingMonkeyGrass2Sago > MAX_LIZARD_CROSSING)
 		{
 		  cout << "\tThe cats are happy - they have toys.\n";
 		  exit( -1 );
 		}
+    counter_mutex.unlock();  //ST DO
     }
+    
 }
 
  
@@ -327,16 +344,20 @@ void Lizard::sleepNow()
 
 	if (debug)
     {
+      counter_mutex.lock();   //ST DO
       cout << "[" << _id << "] sleeping for " << sleepSeconds << " seconds" << endl;
       cout << flush;
+      counter_mutex.unlock(); //ST DO
     }
 
 	sleep( sleepSeconds );
 
 	if (debug)
     {
+      counter_mutex.lock();   //ST DO
       cout << "[" << _id << "] awake" << endl;
       cout << flush;
+      counter_mutex.unlock(); //ST DO
     }
 }
 
@@ -355,17 +376,22 @@ void Lizard::sago2MonkeyGrassIsSafe()
 {
 	if (debug)
     {
+		counter_mutex.lock();   //DO ST
 		cout << "[" << _id << "] checking  sago -> monkey grass" << endl;
 		cout << flush;
+		counter_mutex.unlock(); //DO ST
     }
 
-	
+	//Wait for a free spot on the driveway ST DO
+  sem_wait(&driveway_sem); //ST DO
 
 
 	if (debug)
     {
+		counter_mutex.lock();   //DO ST
 		cout << "[" << _id << "] thinks  sago -> monkey grass  is safe" << endl;
 		cout << flush;
+		counter_mutex.unlock(); //DO ST
     }
 }
 
@@ -381,14 +407,18 @@ void Lizard::crossSago2MonkeyGrass()
 {
 	if (debug)
     {
+      counter_mutex.lock();   //ST DO
       cout << "[" << _id << "] crossing  sago -> monkey grass" << endl;
       cout << flush;
+      counter_mutex.unlock(); //ST DO
     }
 
 	/*
 	 * One more crossing this way
 	 */
+  counter_mutex.lock();   //ST DO
 	numCrossingSago2MonkeyGrass++;
+  counter_mutex.unlock(); //ST DO
 
 	/*
      * Check for lizards cross both ways
@@ -407,10 +437,12 @@ void Lizard::crossSago2MonkeyGrass()
      */
 	sleep( CROSS_SECONDS );
 
-    /*
-     * That one seems to have made it
-     */
-    numCrossingSago2MonkeyGrass--;
+  /*
+    * That one seems to have made it
+    */
+  counter_mutex.lock();   //ST DO
+  numCrossingSago2MonkeyGrass--;
+  counter_mutex.unlock();  //ST DO
 }
 
 
@@ -426,12 +458,15 @@ void Lizard::madeIt2MonkeyGrass()
      */
 	if (debug)
     {
+    counter_mutex.lock();   //ST DO
 		cout << "[" << _id << "] made the  sago -> monkey grass  crossing" << endl;
 		cout << flush;
+    counter_mutex.unlock(); //ST DO
     }
 
 
-
+    // Send that slot on drivway is free ST DO
+    sem_post(&driveway_sem);  //ST DO
 
 
 }
@@ -450,8 +485,10 @@ void Lizard::eat()
 
 	if (debug)
     {
+    counter_mutex.lock();   //ST DO
 		cout << "[" << _id << "] eating for " << eatSeconds << " seconds" << endl;
 		cout << flush;
+    counter_mutex.unlock(); //ST DO
     }
 
 	/*
@@ -461,8 +498,10 @@ void Lizard::eat()
 
 	if (debug)
     {
+      counter_mutex.lock();   //ST DO
       cout << "[" << _id << "] finished eating" << endl;
       cout << flush;
+      counter_mutex.unlock(); //ST DO
     }
 }
 
@@ -478,18 +517,21 @@ void Lizard::monkeyGrass2SagoIsSafe()
 {
 	if (debug)
     {
+    counter_mutex.lock();   //ST DO
 		cout << "[" << _id << "] checking  monkey grass -> sago" << endl;
 		cout << flush;
+    counter_mutex.unlock(); //ST DO
     }
 
-
-
-
+  //Wait for a free spot on the driveway DO ST
+  sem_wait(&driveway_sem); //DO ST
 
 	if (debug)
     {
+    counter_mutex.lock();   //ST DO
 		cout << "[" << _id << "] thinks  monkey grass -> sago  is safe" << endl;
 		cout << flush;
+    counter_mutex.unlock(); //ST DO
     }
 }
 
@@ -505,15 +547,18 @@ void Lizard::crossMonkeyGrass2Sago()
 {
 	if (debug)
     {
+    counter_mutex.lock();   //ST DO
 		cout << "[" << _id << "] crossing  monkey grass -> sago" << endl;
 		cout << flush;
+    counter_mutex.unlock(); //ST DO
     }
 
-    /*
-     * One more crossing this way
-     */
+  /*
+    * One more crossing this way
+    */
+  counter_mutex.lock();   //DO ST
 	numCrossingMonkeyGrass2Sago++;
-
+  counter_mutex.unlock(); //DO ST
   
     /*
      * Check for lizards cross both ways
@@ -534,7 +579,9 @@ void Lizard::crossMonkeyGrass2Sago()
 	/*
      * That one seems to have made it
      */
+  counter_mutex.lock();   //DO ST
 	numCrossingMonkeyGrass2Sago--;
+  counter_mutex.unlock(); //DO ST
 }
 
 
@@ -551,9 +598,13 @@ void Lizard::madeIt2Sago()
      */
 	if (debug)
     {
+    counter_mutex.lock();   //ST DO
 		cout << "[" << _id << "] made the  monkey grass -> sago  crossing" << endl;
 		cout << flush;
+    counter_mutex.unlock(); //ST DO
     }
+
+    sem_post(&driveway_sem); //DO ST
 }
 
 /**
@@ -571,8 +622,10 @@ void Lizard::lizardThread(Lizard *aLizard)
 {	
 	if (debug)
     {
+      counter_mutex.lock();   //ST DO
       cout << "[" << aLizard->getId() << "] lizard is alive" << endl;
       cout << flush;
+      counter_mutex.unlock(); //ST DO
     }
 
 	while(running)
@@ -584,24 +637,14 @@ void Lizard::lizardThread(Lizard *aLizard)
        * some functions by filling in the code.  Some  
        * are already completed - see the comments.
        */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+      aLizard->sago2MonkeyGrassIsSafe(); //DO ST
+      aLizard->crossSago2MonkeyGrass(); //DO ST
+      aLizard->madeIt2MonkeyGrass(); //DO ST
+      aLizard->eat(); //DO ST
+      aLizard->monkeyGrass2SagoIsSafe(); //DO ST
+      aLizard->crossMonkeyGrass2Sago(); //DO ST
+      aLizard->madeIt2Sago(); //DO ST
+      aLizard->sleepNow(); //DO ST
     }
 
 }
@@ -652,30 +695,38 @@ int main(int argc, char **argv)
 	/*
      * Initialize locks and/or semaphores
      */
-
-
+  sem_init(&driveway_sem, 0, MAX_LIZARD_CROSSING); //ST DO
+  
 
 
 	/*
      * Create NUM_LIZARDS lizard threads
      */
-    vector<Lizard*> allLizards;
-    for (int i=0; i < NUM_LIZARDS; i++) {
-	    allLizards.push_back(new Lizard(i));
-    }    
+  vector<Lizard*> allLizards;
+  for (int i=0; i < NUM_LIZARDS; i++) {
+    allLizards.push_back(new Lizard(i));
+  }    
     
 
     /*
-     * Create NUM_CATS cat threads
+     * Create NUM_CATS cat threads    //DO ST
      */
+  vector<Cat*> allCats;            //DO ST
+  for (int i=0; i < NUM_CATS; i++) {  //DO ST
+    allCats.push_back(new Cat(i));
+  }    
 	 
 
 	/*
 	 * Run NUM_LIZARDS and NUM_CATS threads
 	 */
-    for (int i=0; i < NUM_LIZARDS; i++) {
-        allLizards[i]->run();
-    }
+  for (int i=0; i < NUM_CATS; i++) { //DO ST
+      allCats[i]->run();              
+  }
+  for (int i=0; i < NUM_LIZARDS; i++) {
+      allLizards[i]->run();
+  }
+    
 
 	/*
      * Now let the world run for a while
@@ -686,34 +737,46 @@ int main(int argc, char **argv)
 	/*
      * That's it - the end of the world
      */
+  counter_mutex.lock();   //DO ST
 	running = 0;
+  counter_mutex.unlock(); //DO ST
 
 
     /*
      * Wait until all threads terminate
      */
-
-
-
-
-
+    for (int i=0; i < NUM_LIZARDS; i++) { //DO ST
+        allLizards[i]->wait();
+    }
+    for (int i=0; i < NUM_CATS; i++) { //DO ST
+        allCats[i]->wait();
+    }
 
 	/*
      * Delete the locks and semaphores
      */
+     sem_destroy(&driveway_sem); //ST DO
 	 
 	 
 	 
 	/*
 	 * Delete all cat and lizard objects
 	 */
- 
+    for (int i=0; i < NUM_LIZARDS; i++) { //DO ST
+        delete allLizards[i];
+    }
+    for (int i=0; i < NUM_CATS; i++) { //DO ST
+        delete allCats[i];
+    }
 
 
 
 	/*
      * Exit happily
      */
+    if (debug) //Make sure main is done and finishes happily ST DO
+    { cout << "main() is done" << endl; cout << flush; } //ST DO 
+
 	return 0;
 }
 
