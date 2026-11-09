@@ -1,6 +1,8 @@
 # HUNGRY-LIZARD-CROSSING
 The project focuses on multi-threaded programming and thread synchronization using C++.
 
+# WE DID THE EXTRA CREDIT YIpPEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+
 ## OVERVIEW
 This assignment will provide experience with multi-threaded applications and the synchronization primitives (mutex
 lock and semaphore, specifically) that are required for their proper use. You will create a program that synchronizes

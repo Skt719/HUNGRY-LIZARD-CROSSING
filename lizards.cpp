@@ -99,6 +99,8 @@ using namespace std;
 
 sem_t driveway_sem; //ST DO Controls the total cap of lizards (max 4)
 mutex counter_mutex; //ST DO Protects shared counter updates
+mutex run_mutex; //ST DO Protects shared running variable
+bool isRunning(); //ST DO Returns true if the simulation is still running, false otherwise
 
 /**************************************************/
 /* Please leave these variables alone.  They are  */
@@ -237,7 +239,7 @@ void Cat::catThread (Cat *aCat)
     counter_mutex.unlock(); //ST DO
     }
 
-	while(running)
+	while(isRunning())
     {
 		aCat->sleepNow();
 
@@ -418,6 +420,8 @@ void Lizard::crossSago2MonkeyGrass()
 	 */
   counter_mutex.lock();   //ST DO
 	numCrossingSago2MonkeyGrass++;
+  cout << numCrossingSago2MonkeyGrass << " LIZARDS CROSSING" << endl; //DO ST
+  cout << flush; //DO ST
   counter_mutex.unlock(); //ST DO
 
 	/*
@@ -558,6 +562,8 @@ void Lizard::crossMonkeyGrass2Sago()
     */
   counter_mutex.lock();   //DO ST
 	numCrossingMonkeyGrass2Sago++;
+  cout << numCrossingMonkeyGrass2Sago << " LIZARDS CROSSING" << endl; //DO ST
+  cout << flush; //DO ST
   counter_mutex.unlock(); //DO ST
   
     /*
@@ -628,7 +634,24 @@ void Lizard::lizardThread(Lizard *aLizard)
       counter_mutex.unlock(); //ST DO
     }
 
-	while(running)
+	while(isRunning())
+    {
+      /* 
+       * Follow the algorithm given in the assignment
+       * using calls to the functions declared above.
+       * You'll need to complete the implementation of
+       * some functions by filling in the code.  Some  
+       * are already completed - see the comments.
+       */
+      aLizard->sago2MonkeyGrassIsSafe(); //DO ST
+      aLizard->crossSago2MonkeyGrass(); //DO ST
+      aLizard->madeIt2MonkeyGrass(); //DO ST
+      aLizard->eat(); //DO ST
+      aLizard->monkeyGrass2SagoIsSafe(); //DO ST
+      aLizard->crossMonkeyGrass2Sago(); //DO ST
+      aLizard->madeIt2Sago(); //DO ST
+      aLizard->sleepNow(); //DO ST
+    }
     {
       /* 
        * Follow the algorithm given in the assignment
@@ -648,8 +671,19 @@ void Lizard::lizardThread(Lizard *aLizard)
     }
 
 }
- 
 
+/*
+ * bool isRunning() //DO ST
+ *
+ * Should return true if the simulation is still running, false otherwise
+ * Should use some synchronization facilities (lock/semaphore) here.
+ */
+bool isRunning() { //DO ST
+    run_mutex.lock();   // DO ST
+    bool status = (running != 0); //DO ST
+    run_mutex.unlock(); // DO ST
+    return status; //DO ST
+}
 
 
 /*
@@ -737,9 +771,9 @@ int main(int argc, char **argv)
 	/*
      * That's it - the end of the world
      */
-  counter_mutex.lock();   //DO ST
+  run_mutex.lock();   //DO ST
 	running = 0;
-  counter_mutex.unlock(); //DO ST
+  run_mutex.unlock(); //DO ST
 
 
     /*
