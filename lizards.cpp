@@ -422,7 +422,6 @@ void Lizard::crossSago2MonkeyGrass()
 	numCrossingSago2MonkeyGrass++;
   cout << numCrossingSago2MonkeyGrass << " LIZARDS CROSSING" << endl; //DO ST
   cout << flush; //DO ST
-  counter_mutex.unlock(); //ST DO
 
 	/*
      * Check for lizards cross both ways
@@ -434,7 +433,7 @@ void Lizard::crossSago2MonkeyGrass()
 		cout << "\t" << numCrossingMonkeyGrass2Sago << " crossing monkey grass -> sago" << endl;
 		exit( -1 );
     }
-
+    counter_mutex.unlock(); //ST DO
 
 	/*
      * It takes a while to cross, so simulate it
@@ -564,7 +563,6 @@ void Lizard::crossMonkeyGrass2Sago()
 	numCrossingMonkeyGrass2Sago++;
   cout << numCrossingMonkeyGrass2Sago << " LIZARDS CROSSING" << endl; //DO ST
   cout << flush; //DO ST
-  counter_mutex.unlock(); //DO ST
   
     /*
      * Check for lizards cross both ways
@@ -576,6 +574,7 @@ void Lizard::crossMonkeyGrass2Sago()
 		cout << "\t " << numCrossingMonkeyGrass2Sago << " crossing monkey grass -> sago" << endl;
 		exit( -1 );
     }
+    counter_mutex.unlock(); //DO ST
 
 	/*
      * It takes a while to cross, so simulate it

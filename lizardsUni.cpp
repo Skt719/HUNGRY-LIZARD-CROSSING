@@ -89,6 +89,7 @@ mutex mg_mutex; //ST DO Protects the mg2sago_waitCount variable
 mutex sago_mutex; //ST DO Protects the sago2mg_waitCount variable
 mutex dir_mutex; //ST DO Protects shared direction updates
 mutex run_mutex; //ST DO Protects shared running variable
+mutex turnstile_mutex; //ST DO Protects shared turnstable variable
 bool isRunning(); //ST DO Returns true if the simulation is still running, false otherwise
 
 /**************************************************/
@@ -375,8 +376,7 @@ void Lizard::sago2MonkeyGrassIsSafe()
 		counter_mutex.unlock(); //DO ST
     }
 
-	//Wait for a free spot on the driveway ST DO
-    sem_wait(&driveway_sem); //ST DO
+	turnstile_mutex.lock(); //ST DO
     
     sago_mutex.lock();   //ST DO
     sago2mg_waitCount++; //DO ST
@@ -389,6 +389,11 @@ void Lizard::sago2MonkeyGrassIsSafe()
         dir_mutex.lock(); //DO ST
     }
     sago_mutex.unlock(); //ST DO
+
+    turnstile_mutex.unlock(); //ST DO
+
+    //Wait for a free spot on the driveway ST DO
+    sem_wait(&driveway_sem); //ST DO
 
 	if (debug)
     {
@@ -422,8 +427,6 @@ void Lizard::crossSago2MonkeyGrass()
 	 */
   counter_mutex.lock();   //ST DO
 	numCrossingSago2MonkeyGrass++;
-  counter_mutex.unlock(); //ST DO
-
 	/*
      * Check for lizards cross both ways
      */
@@ -434,6 +437,7 @@ void Lizard::crossSago2MonkeyGrass()
 		cout << "\t" << numCrossingMonkeyGrass2Sago << " crossing monkey grass -> sago" << endl;
 		exit( -1 );
     }
+    counter_mutex.unlock(); //ST DO
 
 
 	/*
@@ -538,20 +542,24 @@ void Lizard::monkeyGrass2SagoIsSafe()
     counter_mutex.unlock(); //ST DO
     }
 
-  //Wait for a free spot on the driveway DO ST
-  sem_wait(&driveway_sem); //DO ST
+    turnstile_mutex.lock(); //ST DO
 
-  mg_mutex.lock();   //ST DO
-  mg2sago_waitCount++; //DO ST
-  if (mg2sago_waitCount == 1) { //DO ST
-    if (debug) //DO ST
-        {
-            cout << "[" << _id << "] is the FIRST at the  monkey grass -> sago  crossing" << endl; //DO ST
-            cout << flush; //DO ST
-        }
-    dir_mutex.lock(); //DO ST
-  }
-  mg_mutex.unlock(); //ST DO
+    mg_mutex.lock();   //ST DO
+    mg2sago_waitCount++; //DO ST
+    if (mg2sago_waitCount == 1) { //DO ST
+        if (debug) //DO ST
+            {
+                cout << "[" << _id << "] is the FIRST at the  monkey grass -> sago  crossing" << endl; //DO ST
+                cout << flush; //DO ST
+            }
+        dir_mutex.lock(); //DO ST
+    }
+    mg_mutex.unlock(); //ST DO
+
+    turnstile_mutex.unlock(); //ST DO
+
+    //Wait for a free spot on the driveway DO ST
+    sem_wait(&driveway_sem); //DO ST
 
 	if (debug)
     {
@@ -585,7 +593,7 @@ void Lizard::crossMonkeyGrass2Sago()
     */
   counter_mutex.lock();   //DO ST
 	numCrossingMonkeyGrass2Sago++;
-  counter_mutex.unlock(); //DO ST
+  
   
     /*
      * Check for lizards cross both ways
@@ -597,6 +605,7 @@ void Lizard::crossMonkeyGrass2Sago()
 		cout << "\t " << numCrossingMonkeyGrass2Sago << " crossing monkey grass -> sago" << endl;
 		exit( -1 );
     }
+    counter_mutex.unlock(); //DO ST
 
 	/*
      * It takes a while to cross, so simulate it
@@ -633,7 +642,7 @@ void Lizard::madeIt2Sago()
 
     sem_post(&driveway_sem); //DO ST
     
-    counter_mutex.lock();   //ST DO
+    mg_mutex.lock();   //ST DO
     mg2sago_waitCount--; //DO ST
     if (mg2sago_waitCount == 0) { //DO ST
         if (debug) //DO ST
@@ -643,7 +652,7 @@ void Lizard::madeIt2Sago()
         }
         dir_mutex.unlock(); //DO ST
     }
-    counter_mutex.unlock(); //ST DO
+    mg_mutex.unlock(); //ST DO
 }
 
 /**
@@ -668,23 +677,6 @@ void Lizard::lizardThread(Lizard *aLizard)
     }
 
 	while(isRunning())
-    {
-      /* 
-       * Follow the algorithm given in the assignment
-       * using calls to the functions declared above.
-       * You'll need to complete the implementation of
-       * some functions by filling in the code.  Some  
-       * are already completed - see the comments.
-       */
-      aLizard->sago2MonkeyGrassIsSafe(); //DO ST
-      aLizard->crossSago2MonkeyGrass(); //DO ST
-      aLizard->madeIt2MonkeyGrass(); //DO ST
-      aLizard->eat(); //DO ST
-      aLizard->monkeyGrass2SagoIsSafe(); //DO ST
-      aLizard->crossMonkeyGrass2Sago(); //DO ST
-      aLizard->madeIt2Sago(); //DO ST
-      aLizard->sleepNow(); //DO ST
-    }
     {
       /* 
        * Follow the algorithm given in the assignment
